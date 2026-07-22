@@ -87,9 +87,73 @@ function measureRealPingTarget(targetType) {
     });
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function measureDownloadSpeed() {
+    const testUrl = 'https://speed.hetzner.de/10MB.bin';
+    try {
+        const startTime = performance.now();
+        const response = await fetch(testUrl, { cache: 'no-store' });
+        const blob = await response.blob();
+        const duration = (performance.now() - startTime) / 1000;
+        if (!duration || !blob.size) return null;
+        const bits = blob.size * 8;
+        return bits / duration / 1024 / 1024;
+    } catch (error) {
+        return null;
+    }
+}
+
+async function measureUploadSpeed() {
+    const uploadUrl = 'https://postman-echo.com/post';
+    try {
+        const payloadSize = 2 * 1024 * 1024;
+        const payload = new Uint8Array(payloadSize);
+        crypto.getRandomValues(payload);
+        const startTime = performance.now();
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body: payload
+        });
+        await response.json();
+        const duration = (performance.now() - startTime) / 1000;
+        if (!duration || payloadSize === 0) return null;
+        const bits = payloadSize * 8;
+        return bits / duration / 1024 / 1024;
+    } catch (error) {
+        return null;
+    }
+}
+
+async function estimatePacketLoss() {
+    const attempts = 5;
+    let failures = 0;
+    for (let i = 0; i < attempts; i++) {
+        try {
+            const ping = await measureRealPingTarget('google');
+            if (ping > 1200) failures += 1;
+        } catch (error) {
+            failures += 1;
+        }
+        await sleep(250);
+    }
+    return Math.round((failures / attempts) * 100 * 10) / 10;
+}
+
+function computeJitter(samples) {
+    if (!samples.length) return 0;
+    const mean = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+    const variance = samples.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / samples.length;
+    return Math.max(1, Math.round(Math.sqrt(variance)));
+}
+
 // ===== حالة عامة لحساب صحة الشبكة =====
 let lastMetrics = { download: 0, upload: 0, ping: 0, jitter: 0, loss: 0 };
 let bootTime = Date.now();
+let lastSpeedTest = 0;
 
 function computeHealthScore(m) {
     // كل مكوّن يساهم بحصة من 100، مبني على عتبات واقعية لشبكات منزلية
@@ -179,35 +243,35 @@ async function measureMetrics() {
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 
     const pingVal = await measureRealPingTarget('google');
-    const jitterVal = Math.max(1, Math.min(18, Math.round(pingVal / 20 + Math.random() * 3)));
+    const pingSamples = [pingVal];
+    await sleep(140);
+    const secondPing = await measureRealPingTarget('google');
+    pingSamples.push(secondPing);
+    const thirdPing = await measureRealPingTarget('google');
+    pingSamples.push(thirdPing);
+    const jitterVal = computeJitter(pingSamples);
 
-    const startDownload = performance.now();
-    let downSpeed = 0;
-    let upSpeed = 0;
+    let downSpeed = await measureDownloadSpeed();
+    let upSpeed = await measureUploadSpeed();
+    const lossVal = await estimatePacketLoss();
 
-    try {
-        const response = await fetch('https://via.placeholder.com/400x400.png?' + Math.random(), { cache: 'no-store' });
-        const blob = await response.blob();
-        const duration = (performance.now() - startDownload) / 1000;
-        const measured = (blob.size * 8) / (duration * 1024 * 1024);
-        downSpeed = parseFloat(measured.toFixed(2));
-    } catch (e) {
-        downSpeed = connection?.downlink ? connection.downlink * 0.92 + Math.random() * 5 : 32 + Math.random() * 24;
+    if (downSpeed === null) {
+        downSpeed = connection?.downlink ? connection.downlink * 0.92 : 32;
+    }
+    if (upSpeed === null) {
+        upSpeed = downSpeed * 0.28;
     }
 
-    downSpeed = Math.min(Math.max(downSpeed, 4), 250);
-    const uploadRatio = connection?.effectiveType === '4g' || connection?.effectiveType === 'wifi' ? 0.35 : 0.28;
-    upSpeed = parseFloat((downSpeed * uploadRatio + Math.random() * 2).toFixed(2));
+    downSpeed = Math.min(Math.max(downSpeed, 2), 500);
+    upSpeed = Math.min(Math.max(upSpeed, 1), 200);
 
-    const lossVal = pingVal > 300 ? parseFloat((Math.random() * 2 + 0.1).toFixed(1)) : parseFloat((Math.random() * 0.4).toFixed(1));
-
-    lastMetrics = { download: downSpeed, upload: upSpeed, ping: pingVal, jitter: jitterVal, loss: lossVal };
+    lastMetrics = { download: parseFloat(downSpeed.toFixed(1)), upload: parseFloat(upSpeed.toFixed(1)), ping: Math.round(pingVal), jitter: jitterVal, loss: lossVal };
 
     document.getElementById('val-download').innerHTML = formatMetric(downSpeed) + ' <small>Mbps</small>';
     document.getElementById('val-upload').innerHTML = formatMetric(upSpeed) + ' <small>Mbps</small>';
-    document.getElementById('val-ping').innerHTML = pingVal + ' <small>ms</small>';
-    document.getElementById('val-jitter').innerHTML = jitterVal + ' <small>ms</small>';
-    document.getElementById('val-loss').textContent = lossVal + '%';
+    document.getElementById('val-ping').innerHTML = lastMetrics.ping + ' <small>ms</small>';
+    document.getElementById('val-jitter').innerHTML = lastMetrics.jitter + ' <small>ms</small>';
+    document.getElementById('val-loss').textContent = lastMetrics.loss + '%';
 
     updateBar('bar-download', downSpeed, 200);
     updateBar('bar-upload', upSpeed, 80);
