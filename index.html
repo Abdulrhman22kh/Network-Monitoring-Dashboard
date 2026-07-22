@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MARSAD // مرصد الشبكة</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <div class="scope-bg"></div>
+    <div class="scanline-overlay"></div>
+    <div class="vignette"></div>
+
+    <div class="app-container">
+
+        <!-- الرأسية: الرادار + الهوية -->
+        <header class="main-header">
+            <div class="brand-box">
+                <div class="radar-scope" id="radar-scope">
+                    <svg viewBox="0 0 120 120" class="radar-svg">
+                        <circle cx="60" cy="60" r="56" class="radar-ring ring-outer"></circle>
+                        <circle cx="60" cy="60" r="38" class="radar-ring"></circle>
+                        <circle cx="60" cy="60" r="20" class="radar-ring"></circle>
+                        <line x1="60" y1="4" x2="60" y2="116" class="radar-cross"></line>
+                        <line x1="4" y1="60" x2="116" y2="60" class="radar-cross"></line>
+                        <g class="radar-sweep-group">
+                            <path d="M60,60 L60,4 A56,56 0 0,1 108,86 Z" class="radar-sweep"></path>
+                        </g>
+                        <circle cx="60" cy="60" r="3" class="radar-blip blip-core"></circle>
+                        <circle class="radar-blip" id="blip-ping" r="2.4"></circle>
+                        <circle class="radar-blip blip-alt" id="blip-down" r="2.4"></circle>
+                    </svg>
+                    <span class="scope-readout" id="scope-readout">--</span>
+                </div>
+                <div class="brand-text">
+                    <h1 class="glitch-title" data-text="مِرصاد">مِرصاد<span class="amber-accent">.</span></h1>
+                    <p>محطّة رصد الشبكة الحيّة — MARSAD OPS DECK</p>
+                </div>
+            </div>
+            <div class="header-status-badge">
+                <span class="status-indicator"></span>
+                <span id="uptime-readout">جاري ربط المحطة بالشبكة...</span>
+            </div>
+        </header>
+
+        <!-- شبكة اللوحة الرئيسية -->
+        <main class="dashboard-grid">
+
+            <!-- مؤشر صحة الشبكة -->
+            <section class="panel span-4">
+                <div class="panel-title">
+                    <span><i class="tick">◆</i> مؤشر صحّة الشبكة</span>
+                    <span class="pulse-badge">حيّ</span>
+                </div>
+                <div class="health-row">
+                    <div class="health-gauge">
+                        <svg viewBox="0 0 200 110" class="gauge-svg">
+                            <path d="M14,100 A86,86 0 0,1 186,100" class="gauge-track"></path>
+                            <path d="M14,100 A86,86 0 0,1 186,100" class="gauge-fill" id="gauge-fill"></path>
+                        </svg>
+                        <div class="gauge-value">
+                            <span id="health-score">--</span>
+                            <small>من 100</small>
+                        </div>
+                    </div>
+                    <div class="metrics-container">
+                        <div class="metric-box" data-metric="download">
+                            <span class="m-label">التنزيل ↓</span>
+                            <div class="m-value amber-text" id="val-download">-- <small>Mbps</small></div>
+                            <div class="m-bar"><span id="bar-download"></span></div>
+                        </div>
+                        <div class="metric-box" data-metric="upload">
+                            <span class="m-label">الرفع ↑</span>
+                            <div class="m-value cold-text" id="val-upload">-- <small>Mbps</small></div>
+                            <div class="m-bar"><span id="bar-upload"></span></div>
+                        </div>
+                        <div class="metric-box" data-metric="ping">
+                            <span class="m-label">زمن الاستجابة</span>
+                            <div class="m-value" id="val-ping">-- <small>ms</small></div>
+                            <div class="m-bar"><span id="bar-ping"></span></div>
+                        </div>
+                        <div class="metric-box" data-metric="jitter">
+                            <span class="m-label">التذبذب (Jitter)</span>
+                            <div class="m-value" id="val-jitter">-- <small>ms</small></div>
+                            <div class="m-bar"><span id="bar-jitter"></span></div>
+                        </div>
+                        <div class="metric-box" data-metric="loss">
+                            <span class="m-label">فقدان الحزم</span>
+                            <div class="m-value danger-text" id="val-loss">0.0%</div>
+                            <div class="m-bar"><span id="bar-loss"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- معلومات الشبكة -->
+            <section class="panel span-2">
+                <div class="panel-title">
+                    <span><i class="tick">◆</i> بصمة الاتصال</span>
+                </div>
+                <div class="data-table">
+                    <div class="data-row"><span>عنوان IP الخارجي</span> <strong id="info-ip">جاري الفحص...</strong></div>
+                    <div class="data-row"><span>البروتوكول</span> <strong class="hl">DHCP نشط</strong></div>
+                    <div class="data-row"><span>قناع الشبكة</span> <strong>255.255.255.0</strong></div>
+                    <div class="data-row"><span>نوع الاتصال</span> <strong id="conn-type">جارٍ الكشف...</strong></div>
+                    <div class="data-row"><span>اسم الشبكة</span> <strong id="ssid-val" class="hl">غير متوفر</strong></div>
+                    <div class="data-row"><span>التشفير</span> <strong>WPA3-PSK</strong></div>
+                </div>
+            </section>
+
+            <!-- إدارة الراوتر -->
+            <section class="panel span-2">
+                <div class="panel-title">
+                    <span><i class="tick">◆</i> لوحة تحكّم الراوتر</span>
+                </div>
+                <div class="router-state-box">
+                    <div class="data-row"><span>حالة البوابة</span> <strong class="amber-text">مستقرة</strong></div>
+                    <div class="data-row"><span>قوة الإشارة RSSI</span> <strong id="rssi-val">-54 dBm</strong></div>
+                    <div class="data-row"><span>القناة الحالية</span> <strong id="channel-val">36</strong></div>
+                    <div class="data-row"><span>حرارة المعالج</span> <strong class="amber-text">41°C</strong></div>
+                </div>
+                <div class="action-buttons-grid">
+                    <button class="op-btn btn-danger" id="btn-channel">تغيير القناة</button>
+                    <button class="op-btn btn-danger-outline" id="btn-suggestion">اقتراح تحسين</button>
+                    <button class="op-btn btn-amber" id="btn-support">الدعم الفني</button>
+                    <button class="op-btn btn-ghost" id="btn-router-page">دخول الراوتر</button>
+                </div>
+                <p id="router-action-msg" class="feedback-msg"></p>
+            </section>
+
+            <!-- تنبيهات الشبكة -->
+            <section class="panel span-2">
+                <div class="panel-title">
+                    <span><i class="tick">◆</i> تنبيهات الشبكة</span>
+                </div>
+                <div class="alerts-box" id="alerts-box">
+                    <div class="alert-item alert-safe">لا توجد تنبيهات في الوقت الحالي. الشبكة مستقرة.</div>
+                </div>
+            </section>
+
+            <!-- الرسوم البيانية -->
+            <section class="panel span-full">
+                <div class="panel-title">
+                    <span><i class="tick">◆</i> راسمة الإشارة الزمنية</span>
+                    <span class="pulse-badge">SCOPE</span>
+                </div>
+                <div class="charts-grid-3">
+                    <div class="chart-container-inner">
+                        <p class="chart-label">تنزيل البيانات</p>
+                        <canvas id="downloadChart"></canvas>
+                    </div>
+                    <div class="chart-container-inner">
+                        <p class="chart-label">رفع البيانات</p>
+                        <canvas id="uploadChart"></canvas>
+                    </div>
+                    <div class="chart-container-inner">
+                        <p class="chart-label">استقرار البينج</p>
+                        <canvas id="pingChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- التيرمينال -->
+            <section class="panel span-3">
+                <div class="panel-title">
+                    <span><i class="tick">◆</i> طرفية التشخيص</span>
+                </div>
+                <div class="terminal-screen" id="terminal-output">
+                    <div class="term-line term-boot">نظام التشخيص جاهز… اختر أمرًا لتنفيذ فحص فعلي عبر الشبكة.</div>
+                </div>
+                <div class="term-btns-grid">
+                    <button class="term-btn" data-cmd="ping-google">Ping 8.8.8.8</button>
+                    <button class="term-btn" data-cmd="ping-router">Ping 192.168.1.1</button>
+                    <button class="term-btn" data-cmd="tracert-router">Tracert المحلي</button>
+                    <button class="term-btn" data-cmd="tracert-google">Tracert الخارجي</button>
+                </div>
+            </section>
+
+            <!-- إرشادات هندسية -->
+            <section class="panel span-1">
+                <div class="panel-title">
+                    <span><i class="tick">◆</i> إرشادات</span>
+                    <span class="pulse-badge">AUTO</span>
+                </div>
+                <div class="tips-stack">
+                    <div class="tip-item" id="cyber-tip-box">
+                        <strong id="tip-title">التحول لنطاق 5GHz</strong>
+                        <p id="tip-desc">يقلل التداخل الشائع في 2.4GHz ويمنحك سرعات أعلى وثباتاً أكبر.</p>
+                    </div>
+                    <div class="tip-dots" id="tip-dots"></div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="app-footer">
+            <span>MARSAD OPS DECK</span>
+            <span id="footer-clock">--:--:--</span>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
