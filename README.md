@@ -29,5 +29,7 @@ Network-Monitoring-Dashboard/
 ├── index.html
 ├── style.css
 ├── script.js
-├── assets/
+├── Capture.PNG
+├── Capture2.PNG
+├── Capture3.PNG
 └── README.md
