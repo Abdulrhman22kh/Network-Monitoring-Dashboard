@@ -1,5 +1,15 @@
 # Network Monitoring Dashboard
+### Dashboard Preview
 
+![Dashboard Preview](./Capture.PNG)
+
+### Network Monitoring Interface
+
+![Network Monitoring Interface](./Capture2.PNG)
+
+### System Status
+
+![System Status](./Capture3.PNG)
 ## Overview
 
 Network Monitoring Dashboard is a project focused on monitoring and visualizing network performance, device status, and infrastructure information.
@@ -35,14 +45,4 @@ Network-Monitoring-Dashboard/
 └── README.md
 ## Screenshots
 
-### Dashboard Preview
 
-![Dashboard Preview](./Capture.PNG)
-
-### Network Monitoring Interface
-
-![Network Monitoring Interface](./Capture2.PNG)
-
-### System Status
-
-![System Status](./Capture3.PNG)
