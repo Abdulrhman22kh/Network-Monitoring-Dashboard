@@ -33,3 +33,16 @@ Network-Monitoring-Dashboard/
 ├── Capture2.PNG
 ├── Capture3.PNG
 └── README.md
+## Screenshots
+
+### Dashboard Preview
+
+![Dashboard Preview](./Capture.PNG)
+
+### Network Monitoring Interface
+
+![Network Monitoring Interface](./Capture2.PNG)
+
+### System Status
+
+![System Status](./Capture3.PNG)
